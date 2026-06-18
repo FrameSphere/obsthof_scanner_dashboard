@@ -3,83 +3,80 @@ import StatCard from '@/components/StatCard'
 import BucketChart from '@/components/BucketChart'
 import RecentScans from '@/components/RecentScans'
 
-export const revalidate = 60 // Seite jede Minute neu laden
+export const revalidate = 60
 
 function todayRange() {
-  const from = new Date()
-  from.setHours(0, 0, 0, 0)
-  const to = new Date()
-  to.setHours(23, 59, 59, 999)
+  const from = new Date(); from.setHours(0, 0, 0, 0)
+  const to = new Date(); to.setHours(23, 59, 59, 999)
   return { from: from.toISOString(), to: to.toISOString() }
+}
+
+const sectionStyle = {
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: '8px',
+  padding: '24px 28px',
+}
+
+const sectionTitleStyle = {
+  fontSize: '13px',
+  fontWeight: 600,
+  color: 'var(--text-primary)',
+  letterSpacing: '-0.01em',
+  marginBottom: '20px',
+  paddingBottom: '16px',
+  borderBottom: '1px solid var(--border)',
 }
 
 export default async function DashboardPage() {
   const { from, to } = todayRange()
-
   const [summaries, recentScans] = await Promise.all([
     getEmployeeSummaries(from, to),
-    getRecentScans(20),
+    getRecentScans(25),
   ])
 
-  const totalBuckets = summaries.reduce((sum, s) => sum + s.totalBuckets, 0)
-  const totalScans = summaries.reduce((sum, s) => sum + s.scanCount, 0)
+  const totalBuckets = summaries.reduce((s, e) => s + e.totalBuckets, 0)
+  const totalScans = summaries.reduce((s, e) => s + e.scanCount, 0)
   const topEmployee = summaries[0] ?? null
 
+  const dateStr = new Date().toLocaleDateString('de-DE', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+
   return (
-    <div className="space-y-8">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Heutige Übersicht</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          {new Date().toLocaleDateString('de-DE', {
-            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-          })}
-        </p>
+        <div style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '6px' }}>
+          {dateStr}
+        </div>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+          Tagesübersicht
+        </h1>
       </div>
 
-      {/* Kennzahlen */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+        <StatCard label="Eimer heute" value={totalBuckets} />
+        <StatCard label="Scans heute" value={totalScans} />
+        <StatCard label="Aktive Mitarbeiter" value={summaries.length} />
         <StatCard
-          label="Eimer heute"
-          value={totalBuckets}
-          icon="🧺"
-          color="green"
-        />
-        <StatCard
-          label="Scans heute"
-          value={totalScans}
-          icon="📡"
-          color="blue"
-        />
-        <StatCard
-          label="Aktive Mitarbeiter"
-          value={summaries.length}
-          icon="👷"
-          color="orange"
-        />
-        <StatCard
-          label="Top Mitarbeiter"
+          label="Bester Mitarbeiter"
           value={topEmployee ? topEmployee.totalBuckets : '—'}
           sub={topEmployee?.employee.name}
-          icon="🏆"
-          color="red"
         />
       </div>
 
-      {/* Eimer pro Mitarbeiter */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800 mb-6">
-          Eimer pro Mitarbeiter — heute
-        </h2>
+      {/* Eimer-Ranking */}
+      <div style={sectionStyle}>
+        <div style={sectionTitleStyle}>Eimer je Mitarbeiter — heute</div>
         <BucketChart summaries={summaries} />
       </div>
 
       {/* Letzte Scans */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800 mb-6">
-          Letzte Scans
-        </h2>
+      <div style={sectionStyle}>
+        <div style={sectionTitleStyle}>Letzte Scans</div>
         <RecentScans scans={recentScans} />
       </div>
 

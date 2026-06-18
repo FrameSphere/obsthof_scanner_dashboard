@@ -2,26 +2,33 @@ type Props = {
   label: string
   value: string | number
   sub?: string
-  icon: string
-  color: 'green' | 'blue' | 'orange' | 'red'
+  trend?: string
 }
 
-const colors = {
-  green: 'bg-green-50 text-green-700 border-green-200',
-  blue: 'bg-blue-50 text-blue-700 border-blue-200',
-  orange: 'bg-orange-50 text-orange-700 border-orange-200',
-  red: 'bg-red-50 text-red-700 border-red-200',
-}
-
-export default function StatCard({ label, value, sub, icon, color }: Props) {
+export default function StatCard({ label, value, sub, trend }: Props) {
   return (
-    <div className={`rounded-2xl border p-5 ${colors[color]}`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium opacity-70">{label}</span>
-        <span className="text-2xl">{icon}</span>
+    <div style={{
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: '8px',
+      padding: '20px 24px',
+    }}>
+      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '12px' }}>
+        {label}
       </div>
-      <div className="text-3xl font-bold">{value}</div>
-      {sub && <div className="text-xs mt-1 opacity-60">{sub}</div>}
+      <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+        {value}
+      </div>
+      {sub && (
+        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+          {sub}
+        </div>
+      )}
+      {trend && (
+        <div style={{ fontSize: '12px', color: 'var(--accent)', marginTop: '6px', fontWeight: 500 }}>
+          {trend}
+        </div>
+      )}
     </div>
   )
 }
