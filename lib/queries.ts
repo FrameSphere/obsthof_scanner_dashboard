@@ -12,7 +12,6 @@ export async function getEmployeeSummaries(from: string, to: string): Promise<Em
   if (error) throw error
   if (!scans) return []
 
-  // Gruppieren nach Mitarbeiter
   const map = new Map<string, EmployeeSummary>()
   for (const scan of scans as BucketScan[]) {
     if (!scan.employees) continue
@@ -33,29 +32,33 @@ export async function getEmployeeSummaries(from: string, to: string): Promise<Em
   return Array.from(map.values()).sort((a, b) => b.totalBuckets - a.totalBuckets)
 }
 
-// Letzte N Scans
-export async function getRecentScans(limit = 20): Promise<BucketScan[]> {
-  const { data, error } = await supabase
+// Letzte Scans — optional auf Zeitraum eingeschränkt
+export async function getRecentScans(limit = 20, from?: string, to?: string): Promise<BucketScan[]> {
+  let query = supabase
     .from('bucket_scans')
     .select('*, employees(*)')
     .order('scanned_at', { ascending: false })
     .limit(limit)
 
+  if (from) query = query.gte('scanned_at', from)
+  if (to) query = query.lte('scanned_at', to)
+
+  const { data, error } = await query
   if (error) throw error
   return data ?? []
 }
 
-// Tages-Verlauf (Eimer pro Tag) für Chart
-export async function getDailyTotals(days = 14): Promise<{ date: string; total: number }[]> {
-  const from = new Date()
-  from.setDate(from.getDate() - days)
-
-  const { data, error } = await supabase
+// Tages-Verlauf (Eimer pro Tag) für Chart — optional auf Zeitraum eingeschränkt
+export async function getDailyTotals(from?: string, to?: string): Promise<{ date: string; total: number }[]> {
+  let query = supabase
     .from('bucket_scans')
     .select('bucket_count, scanned_at')
-    .gte('scanned_at', from.toISOString())
     .order('scanned_at', { ascending: true })
 
+  if (from) query = query.gte('scanned_at', from)
+  if (to) query = query.lte('scanned_at', to)
+
+  const { data, error } = await query
   if (error) throw error
   if (!data) return []
 
@@ -66,4 +69,18 @@ export async function getDailyTotals(days = 14): Promise<{ date: string; total: 
   }
 
   return Array.from(totals.entries()).map(([date, total]) => ({ date, total }))
+}
+
+// Einzelner Mitarbeiter — Scans in einem Zeitraum
+export async function getEmployeeScans(employeeId: string, from: string, to: string): Promise<BucketScan[]> {
+  const { data, error } = await supabase
+    .from('bucket_scans')
+    .select('*')
+    .eq('employee_id', employeeId)
+    .gte('scanned_at', from)
+    .lte('scanned_at', to)
+    .order('scanned_at', { ascending: false })
+
+  if (error) throw error
+  return data ?? []
 }
