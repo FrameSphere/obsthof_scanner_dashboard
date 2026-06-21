@@ -6,7 +6,7 @@ function scanHours(scan: BucketScan): number {
   const ms = new Date(scan.work_end).getTime() - new Date(scan.work_start).getTime()
   return ms > 0 ? ms / (1000 * 60 * 60) : 0
 }
-
+ 
 // Alle Mitarbeiter mit Eimer-Summen + Effizienz-Kennzahlen für einen Zeitraum
 export async function getEmployeeSummaries(from: string, to: string): Promise<EmployeeSummary[]> {
   const { data: scans, error } = await supabase
