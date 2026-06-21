@@ -1,5 +1,22 @@
 import { supabase, EmployeeSummary, BucketScan } from '@/lib/supabase'
 
+// Berechnet den heutigen Tag (00:00–23:59:59) in deutscher Zeit (Europe/Berlin),
+// unabhängig davon, in welcher Zeitzone der Server (z.B. Vercel/UTC) läuft.
+// Wichtig für alle Server Components, die einen Standard-Zeitraum ohne URL-Parameter berechnen.
+export function defaultRangeBerlin(daysBack = 0) {
+  const berlinNow = new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' })
+  )
+  const from = new Date(berlinNow)
+  from.setDate(from.getDate() - daysBack)
+  from.setHours(0, 0, 0, 0)
+
+  const to = new Date(berlinNow)
+  to.setHours(23, 59, 59, 999)
+
+  return { from: from.toISOString(), to: to.toISOString() }
+}
+
 // Arbeitsdauer eines einzelnen Scans in Stunden (0 falls work_start/work_end fehlen)
 function scanHours(scan: BucketScan): number {
   if (!scan.work_start || !scan.work_end) return 0

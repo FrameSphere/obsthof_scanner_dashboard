@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 
 const nav = [
@@ -24,15 +25,19 @@ export default function Sidebar() {
     }}>
       {/* Brand */}
       <div style={{
-        padding: '28px 24px 24px',
+        padding: '24px 24px',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex',
+        alignItems: 'center',
       }}>
-        <div style={{ fontSize: '11px', letterSpacing: '0.12em', color: 'var(--sidebar-text)', textTransform: 'uppercase', marginBottom: '4px' }}>
-          Obsthof
-        </div>
-        <div style={{ fontSize: '17px', fontWeight: 700, color: 'white', letterSpacing: '-0.01em' }}>
-          Nikolaus
-        </div>
+        <Image
+          src="/Obsthof_nickolaus.png"
+          alt="Obsthof Nikolaus"
+          width={172}
+          height={56}
+          priority
+          style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
+        />
       </div>
 
       {/* Navigation */}

@@ -5,6 +5,9 @@ import Sidebar from '@/components/Sidebar'
 export const metadata: Metadata = {
   title: 'Obsthof Nikolaus — Verwaltung',
   description: 'Mitarbeiter- und Ernteverwaltung',
+  icons: {
+    icon: '/Obsthof_nickolaus.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

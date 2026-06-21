@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { getEmployeeScans, computeDailyEfficiency } from '@/lib/queries'
+import { getEmployeeScans, computeDailyEfficiency, defaultRangeBerlin } from '@/lib/queries'
 import { Employee } from '@/lib/supabase'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -8,9 +8,7 @@ import DateRangePickerWrapper from '@/components/DateRangePickerWrapper'
 export const revalidate = 60
 
 function defaultRange() {
-  const from = new Date(); from.setDate(from.getDate() - 29); from.setHours(0, 0, 0, 0)
-  const to = new Date(); to.setHours(23, 59, 59, 999)
-  return { from: from.toISOString(), to: to.toISOString() }
+  return defaultRangeBerlin(29)
 }
 
 function formatRangeLabel(from: string, to: string) {

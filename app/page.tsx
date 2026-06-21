@@ -1,4 +1,4 @@
-import { getEmployeeSummaries, getRecentScans } from '@/lib/queries'
+import { getEmployeeSummaries, getRecentScans, defaultRangeBerlin } from '@/lib/queries'
 import StatCard from '@/components/StatCard'
 import EfficiencyChart from '@/components/EfficiencyChart'
 import RecentScans from '@/components/RecentScans'
@@ -7,9 +7,7 @@ import DateRangePickerWrapper from '@/components/DateRangePickerWrapper'
 export const revalidate = 60
 
 function defaultRange() {
-  const from = new Date(); from.setHours(0, 0, 0, 0)
-  const to = new Date(); to.setHours(23, 59, 59, 999)
-  return { from: from.toISOString(), to: to.toISOString() }
+  return defaultRangeBerlin(0)
 }
 
 function formatRangeLabel(from: string, to: string) {
