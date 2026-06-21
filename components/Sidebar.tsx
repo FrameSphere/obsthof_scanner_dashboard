@@ -36,7 +36,7 @@ export default function Sidebar() {
           width={172}
           height={56}
           priority
-          style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
+          style={{ width: '120px', height: 'auto', objectFit: 'contain' }}
         />
       </div>
 
