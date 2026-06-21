@@ -17,6 +17,8 @@ export type BucketScan = {
   id: string
   employee_id: string
   bucket_count: number
+  work_start: string | null
+  work_end: string | null
   scanned_at: string
   employees?: Employee
 }
@@ -26,4 +28,7 @@ export type EmployeeSummary = {
   totalBuckets: number
   scanCount: number
   lastScan: string | null
+  totalWorkHours: number
+  bucketsPerHour: number | null
+  minutesPerBucket: number | null
 }

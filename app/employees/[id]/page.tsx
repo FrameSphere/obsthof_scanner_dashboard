@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { getEmployeeScans } from '@/lib/queries'
+import { getEmployeeScans, computeDailyEfficiency } from '@/lib/queries'
 import { Employee } from '@/lib/supabase'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -57,18 +57,18 @@ export default async function EmployeeDetailPage({
   const allScans = await getEmployeeScans(id, from, to)
 
   const totalBuckets = allScans.reduce((s, sc) => s + sc.bucket_count, 0)
-  const avgPerScan = allScans.length > 0 ? (totalBuckets / allScans.length).toFixed(1) : '—'
 
-  // Tages-Zusammenfassung für Chart
-  const dailyMap = new Map<string, number>()
-  allScans.forEach(sc => {
-    const day = sc.scanned_at.slice(0, 10)
-    dailyMap.set(day, (dailyMap.get(day) ?? 0) + sc.bucket_count)
-  })
-  const dailyEntries = Array.from(dailyMap.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
+  const totalWorkHours = allScans.reduce((sum, sc) => {
+    if (!sc.work_start || !sc.work_end) return sum
+    const ms = new Date(sc.work_end).getTime() - new Date(sc.work_start).getTime()
+    return ms > 0 ? sum + ms / (1000 * 60 * 60) : sum
+  }, 0)
+  const bucketsPerHour = totalWorkHours > 0 ? totalBuckets / totalWorkHours : null
+  const minutesPerBucket = totalWorkHours > 0 && totalBuckets > 0 ? (totalWorkHours * 60) / totalBuckets : null
 
-  const maxDay = Math.max(...dailyEntries.map(([, v]) => v), 1)
+  // Tages-Effizienz für Trend-Chart
+  const dailyEfficiency = computeDailyEfficiency(allScans)
+  const maxRate = Math.max(...dailyEfficiency.map(d => d.bucketsPerHour ?? 0), 1)
 
   const cardStyle = {
     background: 'var(--surface)', border: '1px solid var(--border)',
@@ -114,11 +114,12 @@ export default async function EmployeeDetailPage({
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
         {[
           { label: 'Eimer im Zeitraum', value: totalBuckets },
-          { label: 'Scans gesamt', value: allScans.length },
-          { label: 'Ø Eimer pro Scan', value: avgPerScan },
+          { label: 'Eimer/Std. (Ø)', value: bucketsPerHour !== null ? bucketsPerHour.toFixed(1) : '—' },
+          { label: 'Min/Eimer (Ø)', value: minutesPerBucket !== null ? `${minutesPerBucket.toFixed(1)} min` : '—' },
+          { label: 'Arbeitsstunden gesamt', value: totalWorkHours > 0 ? totalWorkHours.toFixed(1) : '—' },
         ].map(({ label, value }) => (
           <div key={label} style={cardStyle}>
             <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px' }}>
@@ -131,21 +132,28 @@ export default async function EmployeeDetailPage({
         ))}
       </div>
 
-      {/* Tages-Chart */}
-      {dailyEntries.length > 0 && (
+      {/* Effizienz-Trend */}
+      {dailyEfficiency.length > 0 && (
         <div style={cardStyle}>
-          <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
-            Eimer je Tag
+          <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+            Effizienz je Tag
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '80px', overflowX: 'auto' }}>
-            {dailyEntries.map(([date, count]) => (
-              <div key={date} style={{ flex: '1 0 16px', minWidth: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
+            Eimer pro Stunde Arbeitszeit — Tage ohne erfasste Arbeitszeit bleiben leer
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '90px', overflowX: 'auto' }}>
+            {dailyEfficiency.map(({ date, bucketsPerHour: rate, totalBuckets: dayBuckets }) => (
+              <div key={date} style={{ flex: '1 0 28px', minWidth: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                 <div style={{ width: '100%', position: 'relative', height: '60px', display: 'flex', alignItems: 'flex-end' }}>
-                  <div style={{
-                    width: '100%', background: 'var(--primary)',
-                    height: `${(count / maxDay) * 60}px`,
-                    borderRadius: '3px 3px 0 0', minHeight: '4px',
-                  }} />
+                  <div
+                    title={`${dayBuckets} Eimer${rate !== null ? ` · ${rate.toFixed(1)} Eimer/Std.` : ''}`}
+                    style={{
+                      width: '100%',
+                      background: rate !== null ? 'var(--primary)' : 'var(--border)',
+                      height: rate !== null ? `${(rate / maxRate) * 60}px` : '4px',
+                      borderRadius: '3px 3px 0 0', minHeight: '4px',
+                    }}
+                  />
                 </div>
                 <div style={{ fontSize: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                   {formatDate(date)}
@@ -169,7 +177,7 @@ export default async function EmployeeDetailPage({
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                {['Zeitpunkt', 'Eimer'].map(h => (
+                {['Zeitpunkt', 'Eimer', 'Arbeitszeit', 'Eimer/Std.'].map(h => (
                   <th key={h} style={{
                     textAlign: 'left', padding: '11px 24px',
                     fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em',
@@ -179,21 +187,36 @@ export default async function EmployeeDetailPage({
               </tr>
             </thead>
             <tbody>
-              {allScans.map((scan, i) => (
-                <tr key={scan.id} style={{ borderBottom: i < allScans.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <td style={{ padding: '13px 24px', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                    {formatDateTime(scan.scanned_at)}
-                  </td>
-                  <td style={{ padding: '13px 24px' }}>
-                    <span style={{
-                      background: 'var(--green-soft)', color: 'var(--primary)',
-                      fontWeight: 600, fontSize: '13px', padding: '2px 10px', borderRadius: '4px',
-                    }}>
-                      {scan.bucket_count}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {allScans.map((scan, i) => {
+                const hasWorkTime = scan.work_start && scan.work_end
+                const hours = hasWorkTime
+                  ? (new Date(scan.work_end!).getTime() - new Date(scan.work_start!).getTime()) / (1000 * 60 * 60)
+                  : null
+                const rate = hours && hours > 0 ? scan.bucket_count / hours : null
+                return (
+                  <tr key={scan.id} style={{ borderBottom: i < allScans.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <td style={{ padding: '13px 24px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                      {formatDateTime(scan.scanned_at)}
+                    </td>
+                    <td style={{ padding: '13px 24px' }}>
+                      <span style={{
+                        background: 'var(--green-soft)', color: 'var(--primary)',
+                        fontWeight: 600, fontSize: '13px', padding: '2px 10px', borderRadius: '4px',
+                      }}>
+                        {scan.bucket_count}
+                      </span>
+                    </td>
+                    <td style={{ padding: '13px 24px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                      {hasWorkTime
+                        ? `${new Date(scan.work_start!).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} – ${new Date(scan.work_end!).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
+                        : '—'}
+                    </td>
+                    <td style={{ padding: '13px 24px', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 600 }}>
+                      {rate !== null ? rate.toFixed(1) : '—'}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}

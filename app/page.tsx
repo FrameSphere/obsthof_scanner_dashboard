@@ -1,6 +1,6 @@
 import { getEmployeeSummaries, getRecentScans } from '@/lib/queries'
 import StatCard from '@/components/StatCard'
-import BucketChart from '@/components/BucketChart'
+import EfficiencyChart from '@/components/EfficiencyChart'
 import RecentScans from '@/components/RecentScans'
 import DateRangePickerWrapper from '@/components/DateRangePickerWrapper'
 
@@ -41,8 +41,9 @@ export default async function DashboardPage({
   ])
 
   const totalBuckets = summaries.reduce((s, e) => s + e.totalBuckets, 0)
-  const totalScans = summaries.reduce((s, e) => s + e.scanCount, 0)
-  const topEmployee = summaries[0] ?? null
+  const totalWorkHours = summaries.reduce((s, e) => s + e.totalWorkHours, 0)
+  const teamBucketsPerHour = totalWorkHours > 0 ? totalBuckets / totalWorkHours : null
+  const topEfficiency = summaries.find(s => s.bucketsPerHour !== null) ?? null
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -63,21 +64,28 @@ export default async function DashboardPage({
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
         <StatCard label="Eimer gesamt" value={totalBuckets} />
-        <StatCard label="Scans gesamt" value={totalScans} />
+        <StatCard
+          label="Team Ø Eimer/Std."
+          value={teamBucketsPerHour !== null ? teamBucketsPerHour.toFixed(1) : '—'}
+          sub={totalWorkHours > 0 ? `${totalWorkHours.toFixed(1)} Std. erfasst` : undefined}
+        />
         <StatCard label="Aktive Mitarbeiter" value={summaries.length} />
         <StatCard
-          label="Bester Mitarbeiter"
-          value={topEmployee ? topEmployee.totalBuckets : '—'}
-          sub={topEmployee?.employee.name}
+          label="Schnellster Mitarbeiter"
+          value={topEfficiency?.bucketsPerHour ? `${topEfficiency.bucketsPerHour.toFixed(1)}` : '—'}
+          sub={topEfficiency ? `${topEfficiency.employee.name} · Eimer/Std.` : undefined}
         />
       </div>
 
       {/* Ranking */}
       <div style={sectionStyle}>
-        <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
-          Eimer je Mitarbeiter
+        <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+          Effizienz-Ranking
         </div>
-        <BucketChart summaries={summaries} />
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
+          Sortiert nach Eimer pro Stunde Arbeitszeit
+        </div>
+        <EfficiencyChart summaries={summaries} />
       </div>
 
       {/* Letzte Scans */}
