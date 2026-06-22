@@ -32,7 +32,7 @@ export default function Sidebar() {
       }}>
         <Image
           src="/Obsthof_nickolaus.png"
-          alt="Obsthof Nikolaus"
+          alt="Obsthof Nickolaus"
           width={172}
           height={56}
           priority

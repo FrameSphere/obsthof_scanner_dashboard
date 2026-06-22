@@ -3,7 +3,7 @@ import './globals.css'
 import Sidebar from '@/components/Sidebar'
 
 export const metadata: Metadata = {
-  title: 'Obsthof Nikolaus — Verwaltung',
+  title: 'Obsthof Nickolaus — Verwaltung',
   description: 'Mitarbeiter- und Ernteverwaltung',
   icons: {
     icon: '/Obsthof_nickolaus.png',
